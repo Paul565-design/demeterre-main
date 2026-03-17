@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import EcoScoreBadge from "@/components/EcoScoreBadge";
 import { getProduceOptions, getTopCountriesByProduce } from "@/data/rankings";
+import { getSeasonalityInfo } from "@/lib/seasonality";
 
 export default function ComparePage() {
   const produceOptions = useMemo(() => getProduceOptions(), []);
@@ -9,6 +10,31 @@ export default function ComparePage() {
 
   const ranking = useMemo(() => getTopCountriesByProduce(selectedProduce, 5), [selectedProduce]);
   const activeProduce = produceOptions.find((item) => item.produce === selectedProduce) ?? produceOptions[0];
+  const seasonalHighlights = useMemo(() => {
+    return produceOptions
+      .map((option) => {
+        const seasonality = getSeasonalityInfo(option.produceLabel);
+        const bestEntry = getTopCountriesByProduce(option.produce, 1)[0];
+
+        if (!seasonality?.inSeason || !bestEntry) {
+          return null;
+        }
+
+        return {
+          ...option,
+          score: bestEntry.ecoScore,
+          country: bestEntry.country,
+          note: seasonality.note,
+        };
+      })
+      .filter((item): item is NonNullable<typeof item> => item !== null)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 6);
+  }, [produceOptions]);
+  const currentMonthLabel = useMemo(
+    () => new Date().toLocaleDateString("fr-FR", { month: "long" }),
+    []
+  );
 
   return (
     <div className="min-h-screen px-5 pb-24 pt-12">
@@ -18,6 +44,43 @@ export default function ComparePage() {
           Top 5 des meilleurs pays selon les donnees de la base
         </p>
       </motion.div>
+
+      <div className="mt-6 rounded-2xl bg-card p-4 eco-card-shadow">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">De saison</p>
+            <h2 className="mt-1 text-lg font-semibold font-serif">Top fruits et legumes du moment</h2>
+            <p className="text-xs text-muted-foreground">
+              Selection basee sur le mois actuel : {currentMonthLabel}
+            </p>
+          </div>
+          <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
+            {seasonalHighlights.length} en saison
+          </span>
+        </div>
+
+        <div className="mt-4 grid grid-cols-2 gap-2">
+          {seasonalHighlights.map((item) => (
+            <button
+              key={item.produce}
+              type="button"
+              onClick={() => setSelectedProduce(item.produce)}
+              className={`rounded-2xl border px-3 py-3 text-left transition-colors ${
+                item.produce === selectedProduce
+                  ? "border-primary bg-primary/10 text-primary"
+                  : "border-border bg-background"
+              }`}
+            >
+              <div className="flex items-start justify-between gap-2">
+                <span className="text-lg">{item.emoji}</span>
+                <EcoScoreBadge score={item.score} size="sm" />
+              </div>
+              <p className="mt-2 text-sm font-semibold">{item.produceLabel}</p>
+              <p className="mt-1 text-[11px] text-muted-foreground">Meilleur choix actuel : {item.country}</p>
+            </button>
+          ))}
+        </div>
+      </div>
 
       <div className="mt-6 rounded-2xl bg-card p-4 eco-card-shadow">
         <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Produit analyse</p>

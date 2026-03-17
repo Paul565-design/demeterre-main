@@ -3,6 +3,7 @@ export type PesticideLevel = "none" | "low" | "medium" | "high";
 export type ScoreableProduct = {
   category: string;
   carbonFootprint: number;
+  quantityGrams?: number;
   waterUsage: number;
   pesticides: {
     level: PesticideLevel;
@@ -26,6 +27,14 @@ function scoreFromRange(value: number, best: number, worst: number) {
 
   const ratio = (value - best) / (worst - best);
   return clamp(Math.round((1 - ratio) * 100));
+}
+
+function getCarbonPerKg(value: number, quantityGrams?: number) {
+  if (!quantityGrams || quantityGrams <= 0) {
+    return value;
+  }
+
+  return value / (quantityGrams / 1000);
 }
 
 function getCategoryBenchmarks(category: string) {
@@ -104,7 +113,8 @@ export function getPesticideScore(level: PesticideLevel) {
 
 export function calculateCompositeEcoScore(product: ScoreableProduct) {
   const benchmarks = getCategoryBenchmarks(product.category);
-  const carbonScore = scoreFromRange(product.carbonFootprint, benchmarks.carbonBest, benchmarks.carbonWorst);
+  const normalizedCarbonFootprint = getCarbonPerKg(product.carbonFootprint, product.quantityGrams);
+  const carbonScore = scoreFromRange(normalizedCarbonFootprint, benchmarks.carbonBest, benchmarks.carbonWorst);
   const waterScore = scoreFromRange(product.waterUsage, benchmarks.waterBest, benchmarks.waterWorst);
   const pesticideScore = getPesticideScore(product.pesticides.level);
   const ethicsScore = getEthicsScore(product.origin);
@@ -127,5 +137,6 @@ export function calculateCompositeEcoScore(product: ScoreableProduct) {
       ethicsScore,
       packagingScore,
     },
+    normalizedCarbonFootprint,
   };
 }

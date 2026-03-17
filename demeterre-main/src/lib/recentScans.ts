@@ -1,5 +1,6 @@
 import type { Product } from "@/data/products";
 import { fetchProductByBarcode, type OFFProduct } from "@/lib/openfoodfacts";
+import { calculateCompositeEcoScore } from "@/lib/productScoring";
 import { getProductEmoji } from "@/lib/productVisuals";
 
 const RECENT_SCANS_KEY = "recent_scanned_products";
@@ -14,6 +15,7 @@ function toRecentProduct(product: OFFProduct): Product {
     barcode: product.barcode,
     image: getProductEmoji(product.name, product.category),
     imageUrl: product.imageUrl,
+    quantityGrams: product.quantityGrams,
     ecoScore: product.ecoScore,
     carbonFootprint: product.carbonFootprint,
     waterUsage: product.waterUsage,
@@ -27,6 +29,15 @@ function normalizeStoredProduct(product: Product): Product {
   return {
     ...product,
     image: product.image || getProductEmoji(product.name, product.category),
+    ecoScore: calculateCompositeEcoScore({
+      category: product.category,
+      carbonFootprint: product.carbonFootprint,
+      quantityGrams: product.quantityGrams,
+      waterUsage: product.waterUsage,
+      pesticides: product.pesticides,
+      packaging: product.packaging,
+      origin: product.origin,
+    }).finalScore,
   };
 }
 

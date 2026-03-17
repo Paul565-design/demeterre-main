@@ -9,6 +9,7 @@ export interface OFFProduct {
   category: string;
   barcode: string;
   imageUrl: string;
+  quantityGrams?: number;
   ecoScore: number;
   ecoScoreGrade: string;
   carbonFootprint: number;
@@ -42,6 +43,35 @@ function estimatePesticideLevel(labels: string, categories: string): "none" | "l
   return "low";
 }
 
+function parseQuantityToGrams(quantityText: string | undefined, quantityValue: unknown, quantityUnit: unknown) {
+  if (typeof quantityValue === "number" && Number.isFinite(quantityValue)) {
+    const unit = typeof quantityUnit === "string" ? quantityUnit.toLowerCase().trim() : "";
+
+    if (unit === "kg") return Math.round(quantityValue * 1000);
+    if (unit === "g" || unit === "") return Math.round(quantityValue);
+    if (unit === "mg") return Math.round(quantityValue / 1000);
+  }
+
+  const normalized = (quantityText || "").toLowerCase().replace(",", ".").trim();
+  if (!normalized) {
+    return undefined;
+  }
+
+  const match = normalized.match(/(\d+(?:\.\d+)?)\s*(kg|g|mg)\b/);
+  if (!match) {
+    return undefined;
+  }
+
+  const value = Number.parseFloat(match[1]);
+  if (!Number.isFinite(value)) {
+    return undefined;
+  }
+
+  if (match[2] === "kg") return Math.round(value * 1000);
+  if (match[2] === "mg") return Math.round(value / 1000);
+  return Math.round(value);
+}
+
 function parseOFFProduct(data: any): OFFProduct {
   const product = data.product || data;
   const categories = product.categories || product.categories_tags?.join(", ") || "";
@@ -58,9 +88,11 @@ function parseOFFProduct(data: any): OFFProduct {
   } as const;
   const packaging = product.packaging || "Non renseignÃ©";
   const origin = origins.split(",")[0]?.trim() || "Inconnu";
+  const quantityGrams = parseQuantityToGrams(product.quantity, product.product_quantity, product.product_quantity_unit);
   const { finalScore } = calculateCompositeEcoScore({
     category,
     carbonFootprint,
+    quantityGrams,
     waterUsage,
     pesticides: { ...pesticides },
     packaging,
@@ -74,6 +106,7 @@ function parseOFFProduct(data: any): OFFProduct {
     category,
     barcode: product.code || "",
     imageUrl: product.image_front_url || product.image_url || "",
+    quantityGrams,
     ecoScore: finalScore,
     ecoScoreGrade: product.ecoscore_grade || "unknown",
     carbonFootprint,
@@ -88,7 +121,7 @@ function parseOFFProduct(data: any): OFFProduct {
 
 export async function fetchProductByBarcode(barcode: string): Promise<OFFProduct | null> {
   try {
-    const res = await fetch(`${OFF_API}/product/${barcode}?fields=code,product_name,product_name_fr,brands,categories,categories_tags,labels,origins,origin,countries,packaging,image_front_url,image_url,ecoscore_grade,ecoscore_data,nutriscore_grade,nova_group`);
+    const res = await fetch(`${OFF_API}/product/${barcode}?fields=code,product_name,product_name_fr,brands,categories,categories_tags,labels,origins,origin,countries,packaging,quantity,product_quantity,product_quantity_unit,image_front_url,image_url,ecoscore_grade,ecoscore_data,nutriscore_grade,nova_group`);
     const data = await res.json();
     if (data.status === 0) return null;
     return parseOFFProduct(data);
@@ -100,7 +133,7 @@ export async function fetchProductByBarcode(barcode: string): Promise<OFFProduct
 export async function searchProducts(query: string, page = 1): Promise<{ products: OFFProduct[]; count: number }> {
   try {
     const res = await fetch(
-      `${OFF_API}/search?search_terms=${encodeURIComponent(query)}&search_simple=1&json=1&page=${page}&page_size=20&fields=code,product_name,product_name_fr,brands,categories,categories_tags,labels,origins,origin,countries,packaging,image_front_url,image_url,ecoscore_grade,ecoscore_data,nutriscore_grade,nova_group&lc=fr&cc=fr`
+      `${OFF_API}/search?search_terms=${encodeURIComponent(query)}&search_simple=1&json=1&page=${page}&page_size=20&fields=code,product_name,product_name_fr,brands,categories,categories_tags,labels,origins,origin,countries,packaging,quantity,product_quantity,product_quantity_unit,image_front_url,image_url,ecoscore_grade,ecoscore_data,nutriscore_grade,nova_group&lc=fr&cc=fr`
     );
     const data = await res.json();
     return {

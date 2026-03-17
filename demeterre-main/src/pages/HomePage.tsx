@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { ScanLine, Search, Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import logo from "../../Logo.png";
 import ProductCard from "@/components/ProductCard";
 import ThemeToggle from "@/components/ThemeToggle";
 import type { Product } from "@/data/products";
@@ -61,9 +62,14 @@ export default function HomePage() {
           animate={{ opacity: 1, y: 0 }}
           className="flex items-center justify-between"
         >
-          <div>
-            <h1 className="text-2xl font-bold text-primary-foreground">Demeterre</h1>
-            <p className="mt-1 text-sm text-primary-foreground/80">Scannez, classez, consommez mieux.</p>
+          <div className="flex items-center gap-3">
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary-foreground/12 backdrop-blur">
+              <img src={logo} alt="Logo Demeterre" className="h-11 w-11 object-contain drop-shadow-sm" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-primary-foreground">Demeterre</h1>
+              <p className="mt-1 text-sm text-primary-foreground/80">Scannez, classez, consommez mieux.</p>
+            </div>
           </div>
           <ThemeToggle />
         </motion.div>

@@ -3,7 +3,7 @@ import { calculateCompositeEcoScore } from "@/lib/productScoring";
 
 type RecommendationTarget = Pick<
   Product,
-  "id" | "name" | "brand" | "category" | "ecoScore" | "alternatives" | "carbonFootprint" | "waterUsage" | "pesticides" | "packaging" | "origin"
+  "id" | "name" | "brand" | "category" | "ecoScore" | "alternatives" | "carbonFootprint" | "quantityGrams" | "waterUsage" | "pesticides" | "packaging" | "origin"
 >;
 
 const PRODUCT_GROUPS = [
@@ -127,6 +127,7 @@ function buildGeneratedRecommendation(target: RecommendationTarget) {
   const generatedScore = calculateCompositeEcoScore({
     category: target.category,
     carbonFootprint: improvedCarbon,
+    quantityGrams: target.quantityGrams,
     waterUsage: improvedWater,
     pesticides: generatedPesticides,
     packaging: generatedPackaging,
@@ -142,6 +143,7 @@ function buildGeneratedRecommendation(target: RecommendationTarget) {
     image,
     ecoScore: Math.max(generatedScore, target.ecoScore + 8),
     carbonFootprint: improvedCarbon,
+    quantityGrams: target.quantityGrams,
     waterUsage: improvedWater,
     pesticides: generatedPesticides,
     packaging: generatedPackaging,

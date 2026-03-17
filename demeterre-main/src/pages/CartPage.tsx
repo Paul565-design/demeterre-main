@@ -3,7 +3,7 @@ import { Minus, Plus, ShoppingCart, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import EcoScoreBadge from "@/components/EcoScoreBadge";
-import { clearCart, decreaseCartItem, getCartItems, removeCartItem, addProductToCart, type CartItem } from "@/lib/cart";
+import { addProductToCart, clearCart, decreaseCartItem, getCartItems, hydrateCartItems, removeCartItem, type CartItem } from "@/lib/cart";
 
 function roundToTwo(value: number) {
   return Math.round(value * 100) / 100;
@@ -16,6 +16,9 @@ export default function CartPage() {
   useEffect(() => {
     const syncCart = () => setItems(getCartItems());
     syncCart();
+    hydrateCartItems().then((hydrated) => {
+      setItems(hydrated);
+    });
     window.addEventListener("demeterre-cart-updated", syncCart);
     return () => window.removeEventListener("demeterre-cart-updated", syncCart);
   }, []);
@@ -107,9 +110,17 @@ export default function CartPage() {
                   <button
                     type="button"
                     onClick={() => navigate(`/product/${item.product.id}`, { state: { product: item.product } })}
-                    className="text-4xl"
+                    className="shrink-0"
                   >
-                    {item.product.image}
+                    {item.product.imageUrl ? (
+                      <img
+                        src={item.product.imageUrl}
+                        alt={item.product.name}
+                        className="h-14 w-14 rounded-2xl bg-white object-cover"
+                      />
+                    ) : (
+                      <span className="text-4xl">{item.product.image}</span>
+                    )}
                   </button>
                   <div className="min-w-0 flex-1">
                     <button

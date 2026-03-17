@@ -15,6 +15,7 @@ export interface Product {
   barcode: string;
   image: string;
   imageUrl?: string;
+  quantityGrams?: number;
   ecoScore: number;
   carbonFootprint: number;
   waterUsage: number;
@@ -314,6 +315,7 @@ for (const product of mockProducts) {
   product.ecoScore = calculateCompositeEcoScore({
     category: product.category,
     carbonFootprint: product.carbonFootprint,
+    quantityGrams: product.quantityGrams,
     waterUsage: product.waterUsage,
     pesticides: product.pesticides,
     packaging: product.packaging,

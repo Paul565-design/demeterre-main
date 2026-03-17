@@ -35,6 +35,7 @@ type UnifiedProduct = {
   category: string;
   image: string;
   imageUrl: string;
+  quantityGrams?: number;
   ecoScore: number;
   carbonFootprint: number;
   waterUsage: number;
@@ -60,6 +61,14 @@ function getCategoryAverage(category: string) {
   if (normalized.includes("fruit")) return 0.8;
   if (normalized.includes("legume")) return 0.7;
   return 1.6;
+}
+
+function getCarbonPerKg(product: UnifiedProduct) {
+  if (!product.quantityGrams || product.quantityGrams <= 0) {
+    return null;
+  }
+
+  return roundToTwo(product.carbonFootprint / (product.quantityGrams / 1000));
 }
 
 function getCarbonBreakdown(product: UnifiedProduct) {
@@ -263,9 +272,11 @@ export default function ProductPage() {
         category: mockProduct.category,
         image: mockProduct.image,
         imageUrl: "",
+        quantityGrams: mockProduct.quantityGrams,
         ecoScore: calculateCompositeEcoScore({
           category: mockProduct.category,
           carbonFootprint: mockProduct.carbonFootprint,
+          quantityGrams: mockProduct.quantityGrams,
           waterUsage: mockProduct.waterUsage,
           pesticides: mockProduct.pesticides,
           packaging: mockProduct.packaging,
@@ -285,7 +296,16 @@ export default function ProductPage() {
             category: localStateProduct.category,
             image: localStateProduct.image,
             imageUrl: "",
-            ecoScore: localStateProduct.ecoScore,
+            quantityGrams: localStateProduct.quantityGrams,
+            ecoScore: calculateCompositeEcoScore({
+              category: localStateProduct.category,
+              carbonFootprint: localStateProduct.carbonFootprint,
+              quantityGrams: localStateProduct.quantityGrams,
+              waterUsage: localStateProduct.waterUsage,
+              pesticides: localStateProduct.pesticides,
+              packaging: localStateProduct.packaging,
+              origin: localStateProduct.origin,
+            }).finalScore,
             carbonFootprint: localStateProduct.carbonFootprint,
             waterUsage: localStateProduct.waterUsage,
             pesticides: localStateProduct.pesticides,
@@ -300,9 +320,11 @@ export default function ProductPage() {
           category: offProduct.category,
           image: "",
           imageUrl: offProduct.imageUrl,
+          quantityGrams: offProduct.quantityGrams,
           ecoScore: calculateCompositeEcoScore({
             category: offProduct.category,
             carbonFootprint: offProduct.carbonFootprint,
+            quantityGrams: offProduct.quantityGrams,
             waterUsage: offProduct.waterUsage,
             pesticides: offProduct.pesticides,
             packaging: offProduct.packaging,
@@ -325,8 +347,15 @@ export default function ProductPage() {
     );
   }
 
+  const carbonPerKg = getCarbonPerKg(product);
   const metrics = [
-    { icon: CloudRain, label: "Empreinte carbone", value: `${product.carbonFootprint} kg CO2`, desc: "par unite produite" },
+    {
+      icon: CloudRain,
+      label: "Empreinte carbone",
+      value: `${product.carbonFootprint} kg CO2`,
+      desc: "par unite produite",
+      extra: carbonPerKg ? `${carbonPerKg} kg CO2 pour 1 kg de produit` : "",
+    },
     { icon: Droplets, label: "Eau consommee", value: `${product.waterUsage} L`, desc: "cycle de vie complet" },
     { icon: Bug, label: "Pesticides", value: getPesticideLabel(product.pesticides.level), desc: `Region : ${product.pesticides.region}`, color: getPesticideColor(product.pesticides.level) },
     { icon: Package, label: "Emballage", value: product.packaging, desc: "" },
@@ -350,6 +379,8 @@ export default function ProductPage() {
     pesticides: product.pesticides,
     packaging: product.packaging,
     origin: product.origin,
+    imageUrl: product.imageUrl,
+    quantityGrams: product.quantityGrams,
     alternatives: mockProduct?.alternatives,
   };
   const recommendedProduct = findRecommendedAlternative(
@@ -395,6 +426,33 @@ export default function ProductPage() {
 
       <div className="mt-6 px-5">
         <Tabs defaultValue="analyse" className="w-full">
+          {seasonality ? (
+            <div
+              className={`mb-4 flex items-center justify-between rounded-2xl border px-4 py-3 ${
+                seasonality.inSeason
+                  ? "border-eco-excellent/30 bg-eco-excellent/10"
+                  : "border-eco-poor/30 bg-eco-poor/10"
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <div>
+                  <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Saison</p>
+                  <p className={`text-sm font-semibold ${seasonality.inSeason ? "text-eco-excellent" : "text-eco-poor"}`}>
+                    {seasonality.inSeason ? "Oui, ce produit est de saison" : "Non, ce produit n'est pas de saison"}
+                  </p>
+                </div>
+              </div>
+              <span
+                className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                  seasonality.inSeason
+                    ? "bg-eco-excellent text-white"
+                    : "bg-eco-poor text-white"
+                }`}
+              >
+                {seasonality.inSeason ? "Oui" : "Non"}
+              </span>
+            </div>
+          ) : null}
           <TabsList className={`grid w-full ${seasonality ? "grid-cols-2" : "grid-cols-1"} rounded-2xl h-auto bg-card p-1`}>
             <TabsTrigger value="analyse" className="rounded-xl py-3">Analyse</TabsTrigger>
             {seasonality ? <TabsTrigger value="saison" className="rounded-xl py-3">Saison</TabsTrigger> : null}
@@ -418,6 +476,7 @@ export default function ProductPage() {
                     <p className="text-xs text-muted-foreground">{metric.label}</p>
                     <p className={`text-sm font-semibold ${metric.color || "text-foreground"}`}>{metric.value}</p>
                     {metric.desc ? <p className="text-[10px] text-muted-foreground">{metric.desc}</p> : null}
+                    {"extra" in metric && metric.extra ? <p className="text-[10px] text-muted-foreground">{metric.extra}</p> : null}
                   </div>
                 </motion.div>
               ))}
