@@ -16,14 +16,6 @@ declare global {
   }
 }
 
-const EXAMPLE_BARCODES = [
-  { code: "3017620422003", label: "Nutella" },
-  { code: "5449000000996", label: "Coca-Cola" },
-  { code: "3228857000166", label: "President Beurre" },
-  { code: "7622210449283", label: "Oreo" },
-  { code: "3175681851856", label: "Volvic" },
-];
-
 export default function ScanPage() {
   const navigate = useNavigate();
   const hostname = window.location.hostname;
@@ -346,25 +338,6 @@ export default function ScanPage() {
           <Search size={18} />
           {searching ? "Recherche..." : "Rechercher"}
         </motion.button>
-      </div>
-
-      <div className="mt-6 w-full max-w-xs">
-        <p className="mb-2 text-xs text-muted-foreground">Essayez un code-barres :</p>
-        <div className="flex flex-wrap gap-2">
-          {EXAMPLE_BARCODES.map((ex) => (
-            <button
-              key={ex.code}
-              onClick={() => {
-                setBarcode(ex.code);
-                void handleScan(ex.code);
-              }}
-              disabled={searching}
-              className="rounded-lg bg-muted px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-primary hover:text-primary-foreground disabled:opacity-50"
-            >
-              {ex.label}
-            </button>
-          ))}
-        </div>
       </div>
     </div>
   );
