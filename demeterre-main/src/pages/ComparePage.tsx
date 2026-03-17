@@ -179,19 +179,6 @@ export default function ComparePage() {
         </div>
       </div>
 
-      <div className="mt-6 rounded-2xl bg-card p-4 eco-card-shadow">
-        <h3 className="text-sm font-semibold font-serif">Produits inclus dans l'exemple</h3>
-        <div className="mt-3 flex flex-wrap gap-2">
-          {produceOptions.map((option) => (
-            <span
-              key={option.produce}
-              className="rounded-full border border-border px-3 py-1.5 text-xs text-muted-foreground"
-            >
-              {option.emoji} {option.produceLabel}
-            </span>
-          ))}
-        </div>
-      </div>
     </div>
   );
 }

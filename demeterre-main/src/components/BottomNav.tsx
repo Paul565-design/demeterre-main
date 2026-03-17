@@ -1,4 +1,4 @@
-import { Home, ScanLine, Trophy, Leaf, ShoppingCart } from "lucide-react";
+import { Home, ScanLine, Trophy, User, ShoppingCart } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 
 const navItems = [
@@ -6,7 +6,7 @@ const navItems = [
   { icon: ScanLine, label: "Scanner", path: "/scan" },
   { icon: Trophy, label: "Classement", path: "/compare" },
   { icon: ShoppingCart, label: "Panier", path: "/cart" },
-  { icon: Leaf, label: "Conseils", path: "/tips" },
+  { icon: User, label: "Profil", path: "/profile" },
 ];
 
 export default function BottomNav() {

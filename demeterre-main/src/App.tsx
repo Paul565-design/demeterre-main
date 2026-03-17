@@ -9,7 +9,7 @@ import ScanPage from "./pages/ScanPage";
 import ProductPage from "./pages/ProductPage";
 import ComparePage from "./pages/ComparePage";
 import CartPage from "./pages/CartPage";
-import TipsPage from "./pages/TipsPage";
+import ProfilePage from "./pages/ProfilePage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -27,7 +27,8 @@ const App = () => (
             <Route path="/product/:id" element={<ProductPage />} />
             <Route path="/compare" element={<ComparePage />} />
             <Route path="/cart" element={<CartPage />} />
-            <Route path="/tips" element={<TipsPage />} />
+            <Route path="/profile" element={<ProfilePage />} />
+            <Route path="/tips" element={<ProfilePage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
           <BottomNav />
