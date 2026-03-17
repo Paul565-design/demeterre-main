@@ -12,6 +12,7 @@ import {
   Package2,
   RefreshCw,
   ShieldCheck,
+  ShoppingCart,
   Truck,
 } from "lucide-react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
@@ -22,6 +23,8 @@ import { mockProducts, getPesticideColor, getPesticideLabel, type Product } from
 import { fetchProductByBarcode, type OFFProduct } from "@/lib/openfoodfacts";
 import { calculateCompositeEcoScore, getEthicsScore } from "@/lib/productScoring";
 import { findRecommendedAlternative } from "@/lib/productRecommendations";
+import { addProductToCart } from "@/lib/cart";
+import { toast } from "sonner";
 
 type UnifiedProduct = {
   name: string;
@@ -330,19 +333,24 @@ export default function ProductPage() {
   const carbonDetails = getCarbonBreakdown(product);
   const pesticideDetails = getPesticideDetails(product.pesticides.level, product.pesticides.region);
   const ethicsDetails = getEthicsDetails(product);
+  const cartProduct: Product = {
+    id: mockProduct?.id ?? localStateProduct?.id ?? product.barcode,
+    name: product.name,
+    brand: product.brand,
+    category: product.category,
+    barcode: product.barcode,
+    image: product.image || "📦",
+    ecoScore: product.ecoScore,
+    carbonFootprint: product.carbonFootprint,
+    waterUsage: product.waterUsage,
+    pesticides: product.pesticides,
+    packaging: product.packaging,
+    origin: product.origin,
+    alternatives: mockProduct?.alternatives,
+  };
   const recommendedProduct = findRecommendedAlternative(
     {
-      id: mockProduct?.id ?? localStateProduct?.id ?? product.barcode,
-      name: product.name,
-      brand: product.brand,
-      category: product.category,
-      ecoScore: product.ecoScore,
-      alternatives: mockProduct?.alternatives,
-      carbonFootprint: product.carbonFootprint,
-      waterUsage: product.waterUsage,
-      pesticides: product.pesticides,
-      packaging: product.packaging,
-      origin: product.origin,
+      ...cartProduct,
     },
     mockProducts
   );
@@ -364,7 +372,20 @@ export default function ProductPage() {
             <p className="text-sm text-primary-foreground/75">{product.brand}</p>
             <p className="mt-0.5 text-xs text-primary-foreground/50">{product.category}</p>
           </div>
-          <EcoScoreBadge score={product.ecoScore} size="lg" />
+          <div className="flex flex-col items-center gap-2">
+            <EcoScoreBadge score={product.ecoScore} size="lg" />
+            <button
+              type="button"
+              onClick={() => {
+                addProductToCart(cartProduct);
+                toast.success(`${product.name} ajoute au caddie`);
+              }}
+              className="flex items-center gap-2 rounded-xl bg-background/15 px-3 py-2 text-xs font-semibold text-primary-foreground backdrop-blur"
+            >
+              <ShoppingCart size={14} />
+              Ajouter au caddie
+            </button>
+          </div>
         </div>
       </div>
 
