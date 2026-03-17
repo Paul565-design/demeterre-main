@@ -18,7 +18,7 @@ import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
 import EcoScoreBadge from "@/components/EcoScoreBadge";
 import ProductCard from "@/components/ProductCard";
-import { mockProducts, getPesticideColor, getPesticideLabel } from "@/data/products";
+import { mockProducts, getPesticideColor, getPesticideLabel, type Product } from "@/data/products";
 import { fetchProductByBarcode, type OFFProduct } from "@/lib/openfoodfacts";
 import { calculateCompositeEcoScore, getEthicsScore } from "@/lib/productScoring";
 import { findRecommendedAlternative } from "@/lib/productRecommendations";
@@ -219,7 +219,13 @@ export default function ProductPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const [offProduct, setOFFProduct] = useState<OFFProduct | null>((location.state as { product?: OFFProduct } | null)?.product || null);
+  const stateProduct = (location.state as { product?: OFFProduct | Product } | null)?.product || null;
+  const [offProduct, setOFFProduct] = useState<OFFProduct | null>(
+    stateProduct && "imageUrl" in stateProduct ? (stateProduct as OFFProduct) : null
+  );
+  const [localStateProduct] = useState<Product | null>(
+    stateProduct && "image" in stateProduct && !("imageUrl" in stateProduct) ? (stateProduct as Product) : null
+  );
   const [loading, setLoading] = useState(false);
 
   const mockProduct = mockProducts.find((p) => p.id === id);
@@ -266,7 +272,22 @@ export default function ProductPage() {
         origin: mockProduct.origin,
         barcode: mockProduct.barcode,
       }
-    : offProduct
+      : localStateProduct
+        ? {
+            name: localStateProduct.name,
+            brand: localStateProduct.brand,
+            category: localStateProduct.category,
+            image: localStateProduct.image,
+            imageUrl: "",
+            ecoScore: localStateProduct.ecoScore,
+            carbonFootprint: localStateProduct.carbonFootprint,
+            waterUsage: localStateProduct.waterUsage,
+            pesticides: localStateProduct.pesticides,
+            packaging: localStateProduct.packaging,
+            origin: localStateProduct.origin,
+            barcode: localStateProduct.barcode,
+          }
+      : offProduct
       ? {
           name: offProduct.name,
           brand: offProduct.brand,
@@ -311,12 +332,17 @@ export default function ProductPage() {
   const ethicsDetails = getEthicsDetails(product);
   const recommendedProduct = findRecommendedAlternative(
     {
-      id: mockProduct?.id ?? product.barcode,
+      id: mockProduct?.id ?? localStateProduct?.id ?? product.barcode,
       name: product.name,
       brand: product.brand,
       category: product.category,
       ecoScore: product.ecoScore,
       alternatives: mockProduct?.alternatives,
+      carbonFootprint: product.carbonFootprint,
+      waterUsage: product.waterUsage,
+      pesticides: product.pesticides,
+      packaging: product.packaging,
+      origin: product.origin,
     },
     mockProducts
   );
@@ -471,7 +497,7 @@ export default function ProductPage() {
           <p className="mb-3 text-sm text-muted-foreground">
             Nous te recommandons un produit similaire avec un meilleur score environnemental.
           </p>
-          <ProductCard product={recommendedProduct} index={0} />
+          <ProductCard product={recommendedProduct} index={0} navigationState={{ product: recommendedProduct }} />
         </div>
       ) : null}
     </div>

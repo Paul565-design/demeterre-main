@@ -7,9 +7,10 @@ import { Product, getPesticideLabel } from "@/data/products";
 interface ProductCardProps {
   product: Product;
   index?: number;
+  navigationState?: unknown;
 }
 
-export default function ProductCard({ product, index = 0 }: ProductCardProps) {
+export default function ProductCard({ product, index = 0, navigationState }: ProductCardProps) {
   const navigate = useNavigate();
 
   return (
@@ -17,7 +18,7 @@ export default function ProductCard({ product, index = 0 }: ProductCardProps) {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.1 }}
-      onClick={() => navigate(`/product/${product.id}`)}
+      onClick={() => navigate(`/product/${product.id}`, navigationState ? { state: navigationState } : undefined)}
       className="flex cursor-pointer items-center gap-4 rounded-2xl bg-card p-4 eco-card-shadow transition-transform active:scale-[0.98]"
     >
       <span className="text-4xl">{product.image}</span>
