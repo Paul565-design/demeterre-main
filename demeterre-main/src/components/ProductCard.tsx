@@ -21,7 +21,15 @@ export default function ProductCard({ product, index = 0, navigationState }: Pro
       onClick={() => navigate(`/product/${product.id}`, navigationState ? { state: navigationState } : undefined)}
       className="flex cursor-pointer items-center gap-4 rounded-2xl bg-card p-4 eco-card-shadow transition-transform active:scale-[0.98]"
     >
-      <span className="text-4xl">{product.image}</span>
+      {product.imageUrl ? (
+        <img
+          src={product.imageUrl}
+          alt={product.name}
+          className="h-14 w-14 rounded-2xl bg-white object-cover"
+        />
+      ) : (
+        <span className="text-4xl">{product.image}</span>
+      )}
       <div className="flex-1 min-w-0">
         <h3 className="font-semibold text-sm truncate">{product.name}</h3>
         <p className="text-xs text-muted-foreground">{product.brand}</p>

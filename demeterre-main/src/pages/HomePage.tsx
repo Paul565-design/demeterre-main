@@ -6,7 +6,7 @@ import ProductCard from "@/components/ProductCard";
 import ThemeToggle from "@/components/ThemeToggle";
 import type { Product } from "@/data/products";
 import { searchProducts, type OFFProduct } from "@/lib/openfoodfacts";
-import { getRecentScannedProducts } from "@/lib/recentScans";
+import { getRecentScannedProducts, hydrateRecentScannedProducts } from "@/lib/recentScans";
 
 export default function HomePage() {
   const navigate = useNavigate();
@@ -18,6 +18,9 @@ export default function HomePage() {
 
   useEffect(() => {
     setRecentProducts(getRecentScannedProducts());
+    void hydrateRecentScannedProducts().then((products) => {
+      setRecentProducts(products);
+    });
   }, []);
 
   const handleSearch = async (q: string) => {

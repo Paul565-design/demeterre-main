@@ -1,5 +1,6 @@
 import type { Product } from "@/data/products";
-import type { OFFProduct } from "@/lib/openfoodfacts";
+import { fetchProductByBarcode, type OFFProduct } from "@/lib/openfoodfacts";
+import { getProductEmoji } from "@/lib/productVisuals";
 
 const RECENT_SCANS_KEY = "recent_scanned_products";
 const MAX_RECENT_SCANS = 12;
@@ -11,13 +12,21 @@ function toRecentProduct(product: OFFProduct): Product {
     brand: product.brand,
     category: product.category,
     barcode: product.barcode,
-    image: "📦",
+    image: getProductEmoji(product.name, product.category),
+    imageUrl: product.imageUrl,
     ecoScore: product.ecoScore,
     carbonFootprint: product.carbonFootprint,
     waterUsage: product.waterUsage,
     pesticides: product.pesticides,
     packaging: product.packaging,
     origin: product.origin,
+  };
+}
+
+function normalizeStoredProduct(product: Product): Product {
+  return {
+    ...product,
+    image: product.image || getProductEmoji(product.name, product.category),
   };
 }
 
@@ -33,10 +42,46 @@ export function getRecentScannedProducts(): Product[] {
     }
 
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
+    if (!Array.isArray(parsed)) {
+      return [];
+    }
+
+    const normalized = parsed.map((item) => normalizeStoredProduct(item as Product));
+    window.localStorage.setItem(RECENT_SCANS_KEY, JSON.stringify(normalized));
+    return normalized;
   } catch {
     return [];
   }
+}
+
+export async function hydrateRecentScannedProducts() {
+  const products = getRecentScannedProducts();
+  let changed = false;
+
+  const hydrated = await Promise.all(
+    products.map(async (product) => {
+      if (product.imageUrl || !product.barcode) {
+        return product;
+      }
+
+      const freshProduct = await fetchProductByBarcode(product.barcode);
+      if (!freshProduct?.imageUrl) {
+        return product;
+      }
+
+      changed = true;
+      return {
+        ...product,
+        imageUrl: freshProduct.imageUrl,
+      };
+    })
+  );
+
+  if (changed && typeof window !== "undefined") {
+    window.localStorage.setItem(RECENT_SCANS_KEY, JSON.stringify(hydrated));
+  }
+
+  return hydrated;
 }
 
 export function saveRecentScannedProduct(product: OFFProduct) {

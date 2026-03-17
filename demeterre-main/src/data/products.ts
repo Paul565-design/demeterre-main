@@ -14,6 +14,7 @@ export interface Product {
   category: string;
   barcode: string;
   image: string;
+  imageUrl?: string;
   ecoScore: number;
   carbonFootprint: number;
   waterUsage: number;
