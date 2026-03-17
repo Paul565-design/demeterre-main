@@ -21,6 +21,7 @@ import ProductCard from "@/components/ProductCard";
 import { mockProducts, getPesticideColor, getPesticideLabel } from "@/data/products";
 import { fetchProductByBarcode, type OFFProduct } from "@/lib/openfoodfacts";
 import { calculateCompositeEcoScore, getEthicsScore } from "@/lib/productScoring";
+import { findRecommendedAlternative } from "@/lib/productRecommendations";
 
 type UnifiedProduct = {
   name: string;
@@ -297,10 +298,6 @@ export default function ProductPage() {
     );
   }
 
-  const alternatives = mockProduct?.alternatives
-    ?.map((altId) => mockProducts.find((p) => p.id === altId))
-    .filter(Boolean) as typeof mockProducts | undefined;
-
   const metrics = [
     { icon: CloudRain, label: "Empreinte carbone", value: `${product.carbonFootprint} kg CO2`, desc: "par unite produite" },
     { icon: Droplets, label: "Eau consommee", value: `${product.waterUsage} L`, desc: "cycle de vie complet" },
@@ -312,6 +309,17 @@ export default function ProductPage() {
   const carbonDetails = getCarbonBreakdown(product);
   const pesticideDetails = getPesticideDetails(product.pesticides.level, product.pesticides.region);
   const ethicsDetails = getEthicsDetails(product);
+  const recommendedProduct = findRecommendedAlternative(
+    {
+      id: mockProduct?.id ?? product.barcode,
+      name: product.name,
+      brand: product.brand,
+      category: product.category,
+      ecoScore: product.ecoScore,
+      alternatives: mockProduct?.alternatives,
+    },
+    mockProducts
+  );
 
   return (
     <div className="min-h-screen pb-24">
@@ -454,17 +462,16 @@ export default function ProductPage() {
         </div>
       </div>
 
-      {alternatives && alternatives.length > 0 ? (
+      {recommendedProduct ? (
         <div className="mt-8 px-5">
           <div className="mb-3 flex items-center gap-2">
             <RefreshCw size={18} className="text-primary" />
-            <h2 className="font-serif text-lg font-semibold">Meilleures alternatives</h2>
+            <h2 className="font-serif text-lg font-semibold">Produit recommande</h2>
           </div>
-          <div className="flex flex-col gap-3">
-            {alternatives.map((alt, index) => (
-              <ProductCard key={alt.id} product={alt} index={index} />
-            ))}
-          </div>
+          <p className="mb-3 text-sm text-muted-foreground">
+            Nous te recommandons un produit similaire avec un meilleur score environnemental.
+          </p>
+          <ProductCard product={recommendedProduct} index={0} />
         </div>
       ) : null}
     </div>
