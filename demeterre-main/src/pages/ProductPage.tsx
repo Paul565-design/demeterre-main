@@ -7,6 +7,7 @@ import {
   Droplets,
   Factory,
   Heart,
+  Leaf,
   MapPin,
   Package,
   Package2,
@@ -19,11 +20,13 @@ import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
 import EcoScoreBadge from "@/components/EcoScoreBadge";
 import ProductCard from "@/components/ProductCard";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { mockProducts, getPesticideColor, getPesticideLabel, type Product } from "@/data/products";
 import { fetchProductByBarcode, type OFFProduct } from "@/lib/openfoodfacts";
 import { calculateCompositeEcoScore, getEthicsScore } from "@/lib/productScoring";
 import { findRecommendedAlternative } from "@/lib/productRecommendations";
 import { addProductToCart } from "@/lib/cart";
+import { getSeasonalityInfo } from "@/lib/seasonality";
 import { toast } from "sonner";
 
 type UnifiedProduct = {
@@ -333,6 +336,7 @@ export default function ProductPage() {
   const carbonDetails = getCarbonBreakdown(product);
   const pesticideDetails = getPesticideDetails(product.pesticides.level, product.pesticides.region);
   const ethicsDetails = getEthicsDetails(product);
+  const seasonality = getSeasonalityInfo(product.name, product.category);
   const cartProduct: Product = {
     id: mockProduct?.id ?? localStateProduct?.id ?? product.barcode,
     name: product.name,
@@ -390,123 +394,182 @@ export default function ProductPage() {
       </div>
 
       <div className="mt-6 px-5">
-        <h2 className="mb-3 font-serif text-lg font-semibold">Impact environnemental</h2>
-        <div className="flex flex-col gap-3">
-          {metrics.map((metric, index) => (
-            <motion.div
-              key={metric.label}
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: index * 0.08 }}
-              className="flex items-center gap-3 rounded-2xl bg-card p-4 eco-card-shadow"
-            >
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-muted">
-                <metric.icon size={20} className="text-primary" />
-              </div>
-              <div className="flex-1">
-                <p className="text-xs text-muted-foreground">{metric.label}</p>
-                <p className={`text-sm font-semibold ${metric.color || "text-foreground"}`}>{metric.value}</p>
-                {metric.desc ? <p className="text-[10px] text-muted-foreground">{metric.desc}</p> : null}
-              </div>
-            </motion.div>
-          ))}
-        </div>
-      </div>
+        <Tabs defaultValue="analyse" className="w-full">
+          <TabsList className={`grid w-full ${seasonality ? "grid-cols-2" : "grid-cols-1"} rounded-2xl h-auto bg-card p-1`}>
+            <TabsTrigger value="analyse" className="rounded-xl py-3">Analyse</TabsTrigger>
+            {seasonality ? <TabsTrigger value="saison" className="rounded-xl py-3">Saison</TabsTrigger> : null}
+          </TabsList>
 
-      <div className="mt-8 px-5">
-        <h2 className="mb-4 font-serif text-2xl font-semibold">Analyse detaillee</h2>
-        <div className="flex flex-col gap-4">
-          <AnalysisCard icon={CloudRain} title={`Empreinte carbone - ${product.carbonFootprint} kg CO2`}>
-            <div className="space-y-5">
-              <DetailProgressRow
-                icon={Factory}
-                label="Production"
-                value={carbonDetails.production}
-                total={product.carbonFootprint}
-                colorClass="bg-primary"
-              />
-              <DetailProgressRow
-                icon={Truck}
-                label="Transport"
-                value={carbonDetails.transport}
-                total={product.carbonFootprint}
-                colorClass="bg-[hsl(var(--accent))]"
-              />
-              <DetailProgressRow
-                icon={Package2}
-                label="Emballage"
-                value={carbonDetails.packaging}
-                total={product.carbonFootprint}
-                colorClass="bg-[hsl(var(--eco-average))]"
-              />
-              <p className="text-base text-muted-foreground">
-                La moyenne pour cette categorie est de ~{carbonDetails.average} kg CO2.
-              </p>
+          <TabsContent value="analyse" className="mt-6">
+            <h2 className="mb-3 font-serif text-lg font-semibold">Impact environnemental</h2>
+            <div className="flex flex-col gap-3">
+              {metrics.map((metric, index) => (
+                <motion.div
+                  key={metric.label}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: index * 0.08 }}
+                  className="flex items-center gap-3 rounded-2xl bg-card p-4 eco-card-shadow"
+                >
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-muted">
+                    <metric.icon size={20} className="text-primary" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-xs text-muted-foreground">{metric.label}</p>
+                    <p className={`text-sm font-semibold ${metric.color || "text-foreground"}`}>{metric.value}</p>
+                    {metric.desc ? <p className="text-[10px] text-muted-foreground">{metric.desc}</p> : null}
+                  </div>
+                </motion.div>
+              ))}
             </div>
-          </AnalysisCard>
 
-          <AnalysisCard icon={Bug} title={`Pesticides - ${pesticideDetails.levelLabel}`}>
-            <div className="space-y-4 text-[15px] leading-7">
-              <p className={`text-2xl font-semibold ${pesticideDetails.levelColor}`}>
-                Niveau : {pesticideDetails.levelLabel}
-              </p>
-              <p className="text-muted-foreground">
-                <span className="font-semibold text-foreground">Region :</span> {product.pesticides.region}
-              </p>
-              <div>
-                <p className="font-semibold text-foreground">Pesticides identifies :</p>
-                <ul className="mt-2 list-disc pl-6 text-muted-foreground">
-                  {pesticideDetails.detected.map((item) => (
-                    <li key={item}>{item}</li>
-                  ))}
-                </ul>
+            <div className="mt-8">
+              <h2 className="mb-4 font-serif text-2xl font-semibold">Analyse detaillee</h2>
+              <div className="flex flex-col gap-4">
+                <AnalysisCard icon={CloudRain} title={`Empreinte carbone - ${product.carbonFootprint} kg CO2`}>
+                  <div className="space-y-5">
+                    <DetailProgressRow
+                      icon={Factory}
+                      label="Production"
+                      value={carbonDetails.production}
+                      total={product.carbonFootprint}
+                      colorClass="bg-primary"
+                    />
+                    <DetailProgressRow
+                      icon={Truck}
+                      label="Transport"
+                      value={carbonDetails.transport}
+                      total={product.carbonFootprint}
+                      colorClass="bg-[hsl(var(--accent))]"
+                    />
+                    <DetailProgressRow
+                      icon={Package2}
+                      label="Emballage"
+                      value={carbonDetails.packaging}
+                      total={product.carbonFootprint}
+                      colorClass="bg-[hsl(var(--eco-average))]"
+                    />
+                    <p className="text-base text-muted-foreground">
+                      La moyenne pour cette categorie est de ~{carbonDetails.average} kg CO2.
+                    </p>
+                  </div>
+                </AnalysisCard>
+
+                <AnalysisCard icon={Bug} title={`Pesticides - ${pesticideDetails.levelLabel}`}>
+                  <div className="space-y-4 text-[15px] leading-7">
+                    <p className={`text-2xl font-semibold ${pesticideDetails.levelColor}`}>
+                      Niveau : {pesticideDetails.levelLabel}
+                    </p>
+                    <p className="text-muted-foreground">
+                      <span className="font-semibold text-foreground">Region :</span> {product.pesticides.region}
+                    </p>
+                    <div>
+                      <p className="font-semibold text-foreground">Pesticides identifies :</p>
+                      <ul className="mt-2 list-disc pl-6 text-muted-foreground">
+                        {pesticideDetails.detected.map((item) => (
+                          <li key={item}>{item}</li>
+                        ))}
+                      </ul>
+                    </div>
+                    <p className="text-muted-foreground">
+                      <span className="font-semibold text-foreground">Risque :</span> {pesticideDetails.risk}
+                    </p>
+                    <p className="text-muted-foreground">
+                      <span className="font-semibold text-foreground">Impact sante :</span> {pesticideDetails.healthImpact}
+                    </p>
+                    <p className="text-muted-foreground">
+                      <span className="font-semibold text-foreground">Impact environnement :</span> {pesticideDetails.environmentalImpact}
+                    </p>
+                  </div>
+                </AnalysisCard>
+
+                <AnalysisCard icon={Heart} title="Ethique & bien-etre">
+                  <div className="flex flex-col gap-5 md:flex-row md:items-start">
+                    <div className="flex items-center gap-4">
+                      <div className="flex h-20 w-20 items-center justify-center rounded-full bg-[hsl(var(--eco-good))] text-3xl font-bold text-white">
+                        {ethicsDetails.score}
+                      </div>
+                      <div>
+                        <p className="text-2xl font-semibold">Score ethique</p>
+                        <p className="text-lg text-muted-foreground">{ethicsDetails.summary}</p>
+                      </div>
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-lg font-semibold">Labels :</p>
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        {ethicsDetails.labels.map((label) => (
+                          <span
+                            key={label}
+                            className="rounded-full bg-muted px-4 py-2 text-sm text-primary"
+                          >
+                            {label}
+                          </span>
+                        ))}
+                      </div>
+                      <div className="mt-4 flex items-start gap-2 text-muted-foreground">
+                        <ShieldCheck size={18} className="mt-1 text-primary" />
+                        <p>
+                          <span className="font-semibold text-foreground">Conditions de travail :</span>{" "}
+                          {ethicsDetails.workConditions}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </AnalysisCard>
               </div>
-              <p className="text-muted-foreground">
-                <span className="font-semibold text-foreground">Risque :</span> {pesticideDetails.risk}
-              </p>
-              <p className="text-muted-foreground">
-                <span className="font-semibold text-foreground">Impact sante :</span> {pesticideDetails.healthImpact}
-              </p>
-              <p className="text-muted-foreground">
-                <span className="font-semibold text-foreground">Impact environnement :</span> {pesticideDetails.environmentalImpact}
-              </p>
             </div>
-          </AnalysisCard>
+          </TabsContent>
 
-          <AnalysisCard icon={Heart} title="Ethique & bien-etre">
-            <div className="flex flex-col gap-5 md:flex-row md:items-start">
-              <div className="flex items-center gap-4">
-                <div className="flex h-20 w-20 items-center justify-center rounded-full bg-[hsl(var(--eco-good))] text-3xl font-bold text-white">
-                  {ethicsDetails.score}
+          {seasonality ? (
+            <TabsContent value="saison" className="mt-6">
+              <motion.div
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="rounded-[2rem] bg-card p-5 eco-card-shadow"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-center gap-4">
+                    <div className="flex h-16 w-16 items-center justify-center rounded-3xl bg-muted text-3xl">
+                      {seasonality.emoji}
+                    </div>
+                    <div>
+                      <h3 className="text-2xl font-semibold">Saison - {seasonality.label}</h3>
+                      <p className={`mt-1 text-sm font-semibold ${seasonality.inSeason ? "text-eco-excellent" : "text-eco-poor"}`}>
+                        {seasonality.statusLabel}
+                      </p>
+                    </div>
+                  </div>
+                  <Leaf size={24} className="mt-2 text-primary" />
                 </div>
-                <div>
-                  <p className="text-2xl font-semibold">Score ethique</p>
-                  <p className="text-lg text-muted-foreground">{ethicsDetails.summary}</p>
-                </div>
-              </div>
-              <div className="flex-1">
-                <p className="text-lg font-semibold">Labels :</p>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {ethicsDetails.labels.map((label) => (
-                    <span
-                      key={label}
-                      className="rounded-full bg-muted px-4 py-2 text-sm text-primary"
-                    >
-                      {label}
-                    </span>
-                  ))}
-                </div>
-                <div className="mt-4 flex items-start gap-2 text-muted-foreground">
-                  <ShieldCheck size={18} className="mt-1 text-primary" />
-                  <p>
-                    <span className="font-semibold text-foreground">Conditions de travail :</span>{" "}
-                    {ethicsDetails.workConditions}
+
+                <div className="mt-6 space-y-4">
+                  <div className={`rounded-2xl px-4 py-4 ${seasonality.inSeason ? "bg-primary/10" : "bg-accent/10"}`}>
+                    <p className="font-semibold">{seasonality.statusDescription}</p>
+                    <p className="mt-1 text-sm text-muted-foreground">{seasonality.note}</p>
+                  </div>
+
+                  <div>
+                    <p className="text-sm font-semibold">Mois favorables</p>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {seasonality.monthLabels.map((label) => (
+                        <span
+                          key={label}
+                          className="rounded-full border border-border px-3 py-1.5 text-xs text-muted-foreground"
+                        >
+                          {label}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
+                  <p className="text-sm text-muted-foreground">
+                    Conseil : privilegie ce produit pendant sa saison pour un meilleur gout et souvent un impact plus faible.
                   </p>
                 </div>
-              </div>
-            </div>
-          </AnalysisCard>
-        </div>
+              </motion.div>
+            </TabsContent>
+          ) : null}
+        </Tabs>
       </div>
 
       {recommendedProduct ? (
