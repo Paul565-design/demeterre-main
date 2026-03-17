@@ -1,10 +1,10 @@
-import { Home, ScanLine, GitCompareArrows, Leaf } from "lucide-react";
+import { Home, ScanLine, Trophy, Leaf } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 
 const navItems = [
   { icon: Home, label: "Accueil", path: "/" },
   { icon: ScanLine, label: "Scanner", path: "/scan" },
-  { icon: GitCompareArrows, label: "Comparer", path: "/compare" },
+  { icon: Trophy, label: "Classement", path: "/compare" },
   { icon: Leaf, label: "Conseils", path: "/tips" },
 ];
 

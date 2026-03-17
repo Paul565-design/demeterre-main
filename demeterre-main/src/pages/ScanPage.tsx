@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { BrowserMultiFormatReader, type IScannerControls } from "@zxing/browser";
 import { BarcodeFormat, DecodeHintType } from "@zxing/library";
 import { fetchProductByBarcode } from "@/lib/openfoodfacts";
+import { saveRecentScannedProduct } from "@/lib/recentScans";
 import { toast } from "sonner";
 
 declare global {
@@ -85,6 +86,7 @@ export default function ScanPage() {
     setSearching(false);
 
     if (product) {
+      saveRecentScannedProduct(product);
       navigate(`/product/${product.barcode}`, { state: { product } });
       return;
     }

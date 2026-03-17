@@ -1,3 +1,5 @@
+import { calculateCompositeEcoScore } from "@/lib/productScoring";
+
 const OFF_API = "https://world.openfoodfacts.org/api/v2";
 
 export interface OFFProduct {
@@ -18,27 +20,16 @@ export interface OFFProduct {
   novaGroup: number;
 }
 
-function gradeToScore(grade: string): number {
-  switch (grade?.toLowerCase()) {
-    case "a": return 90;
-    case "b": return 72;
-    case "c": return 50;
-    case "d": return 30;
-    case "e": return 12;
-    default: return 40;
-  }
-}
-
 function estimateWaterUsage(categories: string): number {
   const cat = (categories || "").toLowerCase();
   if (cat.includes("viande") || cat.includes("meat") || cat.includes("beef")) return 1500;
   if (cat.includes("lait") || cat.includes("milk") || cat.includes("dairy")) return 600;
   if (cat.includes("chocolat") || cat.includes("chocolate") || cat.includes("cacao")) return 1200;
-  if (cat.includes("café") || cat.includes("coffee")) return 1100;
+  if (cat.includes("cafÃ©") || cat.includes("coffee")) return 1100;
   if (cat.includes("jus") || cat.includes("juice") || cat.includes("boisson") || cat.includes("beverage")) return 200;
-  if (cat.includes("légume") || cat.includes("vegetable")) return 100;
+  if (cat.includes("lÃ©gume") || cat.includes("vegetable")) return 100;
   if (cat.includes("fruit")) return 180;
-  if (cat.includes("céréale") || cat.includes("cereal") || cat.includes("bread") || cat.includes("pain")) return 300;
+  if (cat.includes("cÃ©rÃ©ale") || cat.includes("cereal") || cat.includes("bread") || cat.includes("pain")) return 300;
   return 250;
 }
 
@@ -46,8 +37,8 @@ function estimatePesticideLevel(labels: string, categories: string): "none" | "l
   const l = (labels || "").toLowerCase();
   if (l.includes("bio") || l.includes("organic")) return "none";
   const cat = (categories || "").toLowerCase();
-  if (cat.includes("fruit") || cat.includes("légume") || cat.includes("vegetable")) return "medium";
-  if (cat.includes("céréale") || cat.includes("cereal")) return "low";
+  if (cat.includes("fruit") || cat.includes("lÃ©gume") || cat.includes("vegetable")) return "medium";
+  if (cat.includes("cÃ©rÃ©ale") || cat.includes("cereal")) return "low";
   return "low";
 }
 
@@ -56,26 +47,40 @@ function parseOFFProduct(data: any): OFFProduct {
   const categories = product.categories || product.categories_tags?.join(", ") || "";
   const labels = product.labels || "";
   const origins = product.origins || product.origin || product.countries || "Inconnu";
+  const category = product.categories?.split(",")[0]?.trim() || "Autre";
+  const carbonFootprint = product.ecoscore_data?.agribalyse?.co2_total
+    ? Math.round(product.ecoscore_data.agribalyse.co2_total * 100) / 100
+    : Math.round((Math.random() * 3 + 0.5) * 10) / 10;
+  const waterUsage = estimateWaterUsage(categories);
+  const pesticides = {
+    level: estimatePesticideLevel(labels, categories),
+    region: origins.split(",")[0]?.trim() || "Inconnu",
+  } as const;
+  const packaging = product.packaging || "Non renseignÃ©";
+  const origin = origins.split(",")[0]?.trim() || "Inconnu";
+  const { finalScore } = calculateCompositeEcoScore({
+    category,
+    carbonFootprint,
+    waterUsage,
+    pesticides: { ...pesticides },
+    packaging,
+    origin,
+  });
 
   return {
     id: product.code || product._id || "",
     name: product.product_name_fr || product.product_name || "Produit inconnu",
     brand: product.brands || "Marque inconnue",
-    category: product.categories?.split(",")[0]?.trim() || "Autre",
+    category,
     barcode: product.code || "",
     imageUrl: product.image_front_url || product.image_url || "",
-    ecoScore: gradeToScore(product.ecoscore_grade),
+    ecoScore: finalScore,
     ecoScoreGrade: product.ecoscore_grade || "unknown",
-    carbonFootprint: product.ecoscore_data?.agribalyse?.co2_total
-      ? Math.round(product.ecoscore_data.agribalyse.co2_total * 100) / 100
-      : Math.round((Math.random() * 3 + 0.5) * 10) / 10,
-    waterUsage: estimateWaterUsage(categories),
-    pesticides: {
-      level: estimatePesticideLevel(labels, categories),
-      region: origins.split(",")[0]?.trim() || "Inconnu",
-    },
-    packaging: product.packaging || "Non renseigné",
-    origin: origins.split(",")[0]?.trim() || "Inconnu",
+    carbonFootprint,
+    waterUsage,
+    pesticides: { ...pesticides },
+    packaging,
+    origin,
     nutriscoreGrade: product.nutriscore_grade || "unknown",
     novaGroup: product.nova_group || 0,
   };
@@ -99,7 +104,9 @@ export async function searchProducts(query: string, page = 1): Promise<{ product
     );
     const data = await res.json();
     return {
-      products: (data.products || []).filter((p: any) => p.product_name || p.product_name_fr).map((p: any) => parseOFFProduct({ product: p })),
+      products: (data.products || [])
+        .filter((p: any) => p.product_name || p.product_name_fr)
+        .map((p: any) => parseOFFProduct({ product: p })),
       count: data.count || 0,
     };
   } catch {
