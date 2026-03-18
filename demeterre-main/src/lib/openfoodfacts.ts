@@ -1,6 +1,8 @@
 import { calculateCompositeEcoScore } from "@/lib/productScoring";
+import { getStoredProductByBarcode, saveProductToLocalStore, searchStoredProducts } from "@/lib/localProductStore";
 
 const OFF_API = "https://world.openfoodfacts.org/api/v2";
+const OFF_TIMEOUT_MS = 8000;
 
 export interface OFFProduct {
   id: string;
@@ -119,20 +121,33 @@ function parseOFFProduct(data: any): OFFProduct {
   };
 }
 
+async function fetchOFF(url: string) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), OFF_TIMEOUT_MS);
+
+  try {
+    return await fetch(url, { signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 export async function fetchProductByBarcode(barcode: string): Promise<OFFProduct | null> {
   try {
-    const res = await fetch(`${OFF_API}/product/${barcode}?fields=code,product_name,product_name_fr,brands,categories,categories_tags,labels,origins,origin,countries,packaging,quantity,product_quantity,product_quantity_unit,image_front_url,image_url,ecoscore_grade,ecoscore_data,nutriscore_grade,nova_group`);
+    const res = await fetchOFF(`${OFF_API}/product/${barcode}?fields=code,product_name,product_name_fr,brands,categories,categories_tags,labels,origins,origin,countries,packaging,quantity,product_quantity,product_quantity_unit,image_front_url,image_url,ecoscore_grade,ecoscore_data,nutriscore_grade,nova_group`);
     const data = await res.json();
     if (data.status === 0) return null;
-    return parseOFFProduct(data);
+    const product = parseOFFProduct(data);
+    saveProductToLocalStore(product);
+    return product;
   } catch {
-    return null;
+    return getStoredProductByBarcode(barcode);
   }
 }
 
 export async function searchProducts(query: string, page = 1): Promise<{ products: OFFProduct[]; count: number }> {
   try {
-    const res = await fetch(
+    const res = await fetchOFF(
       `${OFF_API}/search?search_terms=${encodeURIComponent(query)}&search_simple=1&json=1&page=${page}&page_size=20&fields=code,product_name,product_name_fr,brands,categories,categories_tags,labels,origins,origin,countries,packaging,quantity,product_quantity,product_quantity_unit,image_front_url,image_url,ecoscore_grade,ecoscore_data,nutriscore_grade,nova_group&lc=fr&cc=fr`
     );
     const data = await res.json();
@@ -143,6 +158,7 @@ export async function searchProducts(query: string, page = 1): Promise<{ product
       count: data.count || 0,
     };
   } catch {
-    return { products: [], count: 0 };
+    const localProducts = searchStoredProducts(query);
+    return { products: localProducts, count: localProducts.length };
   }
 }

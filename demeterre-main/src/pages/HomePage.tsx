@@ -8,6 +8,7 @@ import ThemeToggle from "@/components/ThemeToggle";
 import type { Product } from "@/data/products";
 import { searchProducts, type OFFProduct } from "@/lib/openfoodfacts";
 import { getRecentScannedProducts, hydrateRecentScannedProducts } from "@/lib/recentScans";
+import { RECENT_SCANS_UPDATED_EVENT } from "@/lib/localProductStore";
 
 export default function HomePage() {
   const navigate = useNavigate();
@@ -22,6 +23,15 @@ export default function HomePage() {
     void hydrateRecentScannedProducts().then((products) => {
       setRecentProducts(products);
     });
+
+    const syncRecentProducts = () => {
+      setRecentProducts(getRecentScannedProducts());
+    };
+
+    window.addEventListener(RECENT_SCANS_UPDATED_EVENT, syncRecentProducts);
+    return () => {
+      window.removeEventListener(RECENT_SCANS_UPDATED_EVENT, syncRecentProducts);
+    };
   }, []);
 
   const handleSearch = async (q: string) => {
@@ -156,7 +166,9 @@ export default function HomePage() {
         )}
 
         {searched && !loading && apiResults.length === 0 && (
-          <p className="py-8 text-center text-sm text-muted-foreground">Aucun resultat trouve</p>
+          <p className="py-8 text-center text-sm text-muted-foreground">
+            Aucun resultat trouve, ni via l'API ni dans les produits sauvegardes localement.
+          </p>
         )}
 
         {!searched && (
