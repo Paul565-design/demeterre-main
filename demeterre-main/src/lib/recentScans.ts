@@ -5,6 +5,7 @@ import { getProductEmoji } from "@/lib/productVisuals";
 
 const RECENT_SCANS_KEY = "recent_scanned_products";
 const MAX_RECENT_SCANS = 12;
+export const RECENT_SCANS_UPDATED_EVENT = "demeterre-recent-scans-updated";
 
 function toRecentProduct(product: OFFProduct): Product {
   return {
@@ -90,6 +91,7 @@ export async function hydrateRecentScannedProducts() {
 
   if (changed && typeof window !== "undefined") {
     window.localStorage.setItem(RECENT_SCANS_KEY, JSON.stringify(hydrated));
+    window.dispatchEvent(new Event(RECENT_SCANS_UPDATED_EVENT));
   }
 
   return hydrated;
@@ -104,4 +106,5 @@ export function saveRecentScannedProduct(product: OFFProduct) {
   const deduped = getRecentScannedProducts().filter((item) => item.barcode !== recentProduct.barcode);
   const next = [recentProduct, ...deduped].slice(0, MAX_RECENT_SCANS);
   window.localStorage.setItem(RECENT_SCANS_KEY, JSON.stringify(next));
+  window.dispatchEvent(new Event(RECENT_SCANS_UPDATED_EVENT));
 }
